@@ -1201,6 +1201,7 @@ class Log(@volatile private var _dir: File,
         }
 
         // maybe roll the log if this segment is full
+        // 获取写入的日志段，如果日志段内容超过阈值或者时间超限会创建新的日志段
         val segment = maybeRoll(validRecords.sizeInBytes, appendInfo)
 
         val logOffsetMetadata = LogOffsetMetadata(

@@ -43,12 +43,12 @@ import scala.math._
  *
  * A segment with a base offset of [base_offset] would be stored in two files, a [base_offset].index and a [base_offset].log file.
  *
- * @param log The file records containing log entries
- * @param lazyOffsetIndex The offset index
- * @param lazyTimeIndex The timestamp index
- * @param txnIndex The transaction index
- * @param baseOffset A lower bound on the offsets in this segment
- * @param indexIntervalBytes The approximate number of bytes between entries in the index
+ * @param log The file records containing log entries 日志文件，保存实际的消息
+ * @param lazyOffsetIndex The offset index  偏移量索引
+ * @param lazyTimeIndex The timestamp index  时间戳索引
+ * @param txnIndex The transaction index 已终止事务索引
+ * @param baseOffset A lower bound on the offsets in this segment   日志段起始偏移量
+ * @param indexIntervalBytes The approximate number of bytes between entries in the index 稀疏索引的距离，写入多少数据新增一条索引
  * @param rollJitterMs The maximum random jitter subtracted from the scheduled segment roll time
  * @param time The time instance
  */
@@ -121,7 +121,7 @@ class LogSegment private[log] (val log: FileRecords,
   def size: Int = log.sizeInBytes()
 
   /**
-   * checks that the argument offset can be represented as an integer offset relative to the baseOffset.
+   * checks that the argument offset can be represented as an integer offset relative to the baseOffset.，判断偏移量是与基准偏移量的关系
    */
   def canConvertToRelativeOffset(offset: Long): Boolean = {
     offsetIndex.canAppendOffset(offset)
