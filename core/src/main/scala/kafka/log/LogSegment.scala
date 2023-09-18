@@ -133,8 +133,8 @@ class LogSegment private[log] (val log: FileRecords,
    *
    * It is assumed this method is being called from within a lock.
    *
-   * @param largestOffset The last offset in the message set
-   * @param largestTimestamp The largest timestamp in the message set.
+   * @param largestOffset The last offset in the message set 最大偏移量
+   * @param largestTimestamp The largest timestamp in the message set.  最大时间戳
    * @param shallowOffsetOfMaxTimestamp The offset of the message that has the largest timestamp in the messages to append.
    * @param records The log entries to append.
    * @return the physical position in the file of the appended records
@@ -149,25 +149,31 @@ class LogSegment private[log] (val log: FileRecords,
       trace(s"Inserting ${records.sizeInBytes} bytes at end offset $largestOffset at position ${log.sizeInBytes} " +
             s"with largest timestamp $largestTimestamp at shallow offset $shallowOffsetOfMaxTimestamp")
       val physicalPosition = log.sizeInBytes()
-      if (physicalPosition == 0)
+      if (physicalPosition == 0) {
+        // 日志段为空，更新日志段切分的时间戳
         rollingBasedTimestamp = Some(largestTimestamp)
-
+      }
+      // 确保消息偏移合法
       ensureOffsetInRange(largestOffset)
 
-      // append the messages
+      // append the messages  写入消息
       val appendedBytes = log.append(records)
       trace(s"Appended $appendedBytes to ${log.file} at end offset $largestOffset")
       // Update the in memory max timestamp and corresponding offset.
+      // 更新当前最大时间戳和所属消息的位移
       if (largestTimestamp > maxTimestampSoFar) {
         maxTimestampSoFar = largestTimestamp
         offsetOfMaxTimestampSoFar = shallowOffsetOfMaxTimestamp
       }
       // append an entry to the index (if needed)
+      // 判断是否需要新增索引
       if (bytesSinceLastIndexEntry > indexIntervalBytes) {
+        // 新增索引
         offsetIndex.append(largestOffset, physicalPosition)
         timeIndex.maybeAppend(maxTimestampSoFar, offsetOfMaxTimestampSoFar)
         bytesSinceLastIndexEntry = 0
       }
+      // 更新自上一个索引开始的写入字节数
       bytesSinceLastIndexEntry += records.sizeInBytes
     }
   }
@@ -279,10 +285,11 @@ class LogSegment private[log] (val log: FileRecords,
    * Read a message set from this segment beginning with the first offset >= startOffset. The message set will include
    * no more than maxSize bytes and will end before maxOffset if a maxOffset is specified.
    *
-   * @param startOffset A lower bound on the first offset to include in the message set we read
-   * @param maxSize The maximum number of bytes to include in the message set we read
-   * @param maxPosition The maximum position in the log segment that should be exposed for read
-   * @param minOneMessage If this is true, the first message will be returned even if it exceeds `maxSize` (if one exists)
+   * @param startOffset A lower bound on the first offset to include in the message set we read 要读取的第一条消息偏移位置
+   * @param maxSize The maximum number of bytes to include in the message set we read 能读取得最大字节数
+   * @param maxPosition The maximum position in the log segment that should be exposed for read 能读取得最大文件位置
+   * @param minOneMessage If this is true, the first message will be returned even if it exceeds `maxSize` (if one exists)  是否允许消息体过大时至少返回第一条消息
+   * 防止出现消息体过大消费者过大
    *
    * @return The fetched data and the offset metadata of the first message whose offset is >= startOffset,
    *         or null if the startOffset is larger than the largest offset in this log
@@ -294,7 +301,7 @@ class LogSegment private[log] (val log: FileRecords,
            minOneMessage: Boolean = false): FetchDataInfo = {
     if (maxSize < 0)
       throw new IllegalArgumentException(s"Invalid max size $maxSize for log read from segment $log")
-
+    // 查找索引确定读取物理文件位置
     val startOffsetAndSize = translateOffset(startOffset)
 
     // if the start position is already off the end of the log, return null
@@ -313,8 +320,9 @@ class LogSegment private[log] (val log: FileRecords,
       return FetchDataInfo(offsetMetadata, MemoryRecords.EMPTY)
 
     // calculate the length of the message set to read based on whether or not they gave us a maxOffset
+    // 计算要读取的总字节数
     val fetchSize: Int = min((maxPosition - startPosition).toInt, adjustedMaxSize)
-
+    // 读取消息
     FetchDataInfo(offsetMetadata, log.slice(startPosition, fetchSize),
       firstEntryIncomplete = adjustedMaxSize < startOffsetAndSize.size)
   }
@@ -323,6 +331,7 @@ class LogSegment private[log] (val log: FileRecords,
      offsetIndex.fetchUpperBoundOffset(startOffsetPosition, fetchSize).map(_.offset)
 
   /**
+   * 用于恢复日志段
    * Run recovery on the given segment. This will rebuild the index from the log file and lop off any invalid bytes
    * from the end of the log and index.
    *
@@ -333,30 +342,33 @@ class LogSegment private[log] (val log: FileRecords,
    * @throws LogSegmentOffsetOverflowException if the log segment contains an offset that causes the index offset to overflow
    */
   @nonthreadsafe
-  def recover(producerStateManager: ProducerStateManager, leaderEpochCache: Option[LeaderEpochFileCache] = None): Int = {
-    offsetIndex.reset()
-    timeIndex.reset()
-    txnIndex.reset()
+  def recover(producerStateManager: ProducerStateManager,
+              leaderEpochCache: Option[LeaderEpochFileCache] = None): Int = {
+    offsetIndex.reset()  // 清空偏移量索引
+    timeIndex.reset() // 清空时间索引
+    txnIndex.reset() //清空事务索引
     var validBytes = 0
     var lastIndexEntry = 0
     maxTimestampSoFar = RecordBatch.NO_TIMESTAMP
     try {
       for (batch <- log.batches.asScala) {
-        batch.ensureValid()
+        batch.ensureValid()  // 核验消息集合
         ensureOffsetInRange(batch.lastOffset)
 
         // The max timestamp is exposed at the batch level, so no need to iterate the records
+        // 保存最大时间戳和所属消息位移
         if (batch.maxTimestamp > maxTimestampSoFar) {
           maxTimestampSoFar = batch.maxTimestamp
           offsetOfMaxTimestampSoFar = batch.lastOffset
         }
 
-        // Build offset index
+        // Build offset index  更新索引项
         if (validBytes - lastIndexEntry > indexIntervalBytes) {
           offsetIndex.append(batch.lastOffset, validBytes)
           timeIndex.maybeAppend(maxTimestampSoFar, offsetOfMaxTimestampSoFar)
           lastIndexEntry = validBytes
         }
+        // 更新总消息字节数
         validBytes += batch.sizeInBytes()
 
         if (batch.magic >= RecordBatch.MAGIC_VALUE_V2) {

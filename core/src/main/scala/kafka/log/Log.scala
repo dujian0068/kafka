@@ -205,12 +205,14 @@ case object SegmentDeletion extends LogStartOffsetIncrementReason {
 }
 
 /**
- * An append-only log for storing messages.
+ * An append-only log for storing messages. 一个使用追加的方式存储消息的log
  *
  * The log is a sequence of LogSegments, each with a base offset denoting the first message in the segment.
+ * log是一些列的日志段，每个日志段都有一个base offset表示这个日志段的第一个消息
  *
  * New log segments are created according to a configurable policy that controls the size in bytes or time interval
  * for a given segment.
+ * 基于当前的日志段和配置的时间间隔或者写入字节数 决定什么时间创建新的日志段
  *
  * @param _dir The directory in which log segments are created.
  * @param config The log configuration settings
