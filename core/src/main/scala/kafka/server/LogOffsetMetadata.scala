@@ -38,11 +38,12 @@ object LogOffsetMetadata {
  *  2. the base message offset of the located segment
  *  3. the physical position on the located segment
  */
-case class LogOffsetMetadata(messageOffset: Long,
-                             segmentBaseOffset: Long = Log.UnknownOffset,
-                             relativePositionInSegment: Int = LogOffsetMetadata.UnknownFilePosition) {
+case class LogOffsetMetadata(messageOffset: Long,  // 消息位移值， 高水位值
+                             segmentBaseOffset: Long = Log.UnknownOffset,  // 上述高水位置所在的日志段的起始位移
+                             relativePositionInSegment: Int = LogOffsetMetadata.UnknownFilePosition) {  // 上述高水位置所在的日志段的物理位置，磁盘位置
 
   // check if this offset is already on an older segment compared with the given offset
+  // 判断当前日志段比给定日志段老
   def onOlderSegment(that: LogOffsetMetadata): Boolean = {
     if (messageOffsetOnly)
       throw new KafkaException(s"$this cannot compare its segment info with $that since it only has message offset info")
@@ -51,6 +52,7 @@ case class LogOffsetMetadata(messageOffset: Long,
   }
 
   // check if this offset is on the same segment with the given offset
+  // 判断给定的日志段是不是当前的日志段
   def onSameSegment(that: LogOffsetMetadata): Boolean = {
     if (messageOffsetOnly)
       throw new KafkaException(s"$this cannot compare its segment info with $that since it only has message offset info")
