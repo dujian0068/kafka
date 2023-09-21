@@ -1155,7 +1155,11 @@ class Log(@volatile private var _dir: File,
    * This method will generally be responsible for assigning offsets to the messages,
    * however if the assignOffsets=false flag is passed we will only check that the existing offsets are valid.
    *
-   * @param records                    The log records to append
+   * 添加message到活跃的日志段，如果有必要创建新的活跃日志段则创建、
+   * 这个方法通常会为消息分配偏移量
+   * 但是如果设置了assignOffsets=false， 仅检查偏移量是否有效
+   *
+   * @param records                    The log records to append  代表了Kafka收到的消息，是一个消息的封装
    * @param origin                     Declares the origin of the append which affects required validations
    * @param interBrokerProtocolVersion Inter-broker message protocol version
    * @param assignOffsets              Should the log assign offsets to this message set or blindly apply what it is given
