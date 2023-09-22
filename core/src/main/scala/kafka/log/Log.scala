@@ -492,7 +492,7 @@ class Log(@volatile private var _dir: File,
       // 更新高水位值
       highWatermarkMetadata = newHighWatermark
       // 处理事务状态管理器的高水位更新逻辑
-      producerStateManager.onHighWatermarkUpdated(newHighWatermark.messageOffset)、
+      producerStateManager.onHighWatermarkUpdated(newHighWatermark.messageOffset)
       // First Unstable offset是kafka事务机制的一部分
       maybeIncrementFirstUnstableOffset()
     }
@@ -1177,20 +1177,25 @@ class Log(@volatile private var _dir: File,
                      leaderEpoch: Int,
                      ignoreRecordSize: Boolean): LogAppendInfo = {
     maybeHandleIOException(s"Error while appending records to $topicPartition in dir ${dir.getParent}") {
+      // 分析和验证待写入消息集合，并返回校验结果
       val appendInfo = analyzeAndValidateRecords(records, origin, ignoreRecordSize)
 
       // return if we have no valid messages or if this is a duplicate of the last appended entry
+      // 如果待写入消息长度为0，直接返回
       if (appendInfo.shallowCount == 0)
         return appendInfo
 
       // trim any invalid bytes or partial messages before appending it to the on-disk log
+      // 消息格式整理， 删除无效格式的消息或者无效字节
       var validRecords = trimInvalidBytes(records, appendInfo)
 
       // they are valid, insert them in the log
       lock synchronized {
+        // 确保Log对象没有关闭
         checkIfMemoryMappedBufferClosed()
         if (assignOffsets) {
           // assign offsets to the message set
+          // 使用当前LEO值作为待写入消息集合中第一条消息的位移值
           val offset = new LongRef(nextOffsetMetadata.messageOffset)
           appendInfo.firstOffset = Some(offset.value)
           val now = time.milliseconds
@@ -1214,6 +1219,7 @@ class Log(@volatile private var _dir: File,
             case e: IOException =>
               throw new KafkaException(s"Error validating messages while appending to log $name", e)
           }
+          // 更新校验结果对象类LogAppendInfo
           validRecords = validateAndOffsetAssignResult.validatedRecords
           appendInfo.maxTimestamp = validateAndOffsetAssignResult.maxTimestamp
           appendInfo.offsetOfMaxTimestamp = validateAndOffsetAssignResult.shallowOffsetOfMaxTimestamp
@@ -1224,6 +1230,7 @@ class Log(@volatile private var _dir: File,
 
           // re-validate message sizes if there's a possibility that they have changed (due to re-compression or message
           // format conversion)
+          // 验证消息， 确保消息大小不超限额
           if (!ignoreRecordSize && validateAndOffsetAssignResult.messageSizeMaybeChanged) {
             for (batch <- validRecords.batches.asScala) {
               if (batch.sizeInBytes > config.maxMessageSize) {
@@ -1236,9 +1243,9 @@ class Log(@volatile private var _dir: File,
               }
             }
           }
-        } else {
+        } else { // 直接使用给定的位移值，无需自己分配位移值
           // we are taking the offsets we are given
-          if (!appendInfo.offsetsMonotonic)
+          if (!appendInfo.offsetsMonotonic) // 确保消息的位移值单调递增
             throw new OffsetsOutOfOrderException(s"Out of order offsets found in append to $topicPartition: " +
               records.records.asScala.map(_.offset))
 
@@ -1262,6 +1269,7 @@ class Log(@volatile private var _dir: File,
         }
 
         // update the epoch cache with the epoch stamped onto the message by the leader
+        // 更新Leader Epoch缓存
         validRecords.batches.forEach { batch =>
           if (batch.magic >= RecordBatch.MAGIC_VALUE_V2) {
             maybeAssignEpochStartOffset(batch.partitionLeaderEpoch, batch.baseOffset)
@@ -1277,6 +1285,7 @@ class Log(@volatile private var _dir: File,
         }
 
         // check messages set size may be exceed config.segmentSize
+        // 确保消息大小不超过限额
         if (validRecords.sizeInBytes > config.segmentSize) {
           throw new RecordBatchTooLargeException(s"Message batch size is ${validRecords.sizeInBytes} bytes in append " +
             s"to partition $topicPartition, which exceeds the maximum configured segment size of ${config.segmentSize}.")
@@ -1293,6 +1302,7 @@ class Log(@volatile private var _dir: File,
 
         // now that we have valid records, offsets assigned, and timestamps updated, we need to
         // validate the idempotent/transactional state of the producers and collect some metadata
+        // 验证事务状态
         val (updatedProducers, completedTxns, maybeDuplicate) = analyzeAndValidateProducerState(
           logOffsetMetadata, validRecords, origin)
 
@@ -1303,7 +1313,7 @@ class Log(@volatile private var _dir: File,
           appendInfo.logStartOffset = logStartOffset
           return appendInfo
         }
-
+        // 真正的写入消息操作， 主要调日志段的append方法实现
         segment.append(largestOffset = appendInfo.lastOffset,
           largestTimestamp = appendInfo.maxTimestamp,
           shallowOffsetOfMaxTimestamp = appendInfo.offsetOfMaxTimestamp,
@@ -1315,9 +1325,11 @@ class Log(@volatile private var _dir: File,
         // will be cleaned up after the log directory is recovered. Note that the end offset of the
         // ProducerStateManager will not be updated and the last stable offset will not advance
         // if the append to the transaction index fails.
+        // 更新LEO， LEO=消息集合中最后一条消息的位移值+1
         updateLogEndOffset(appendInfo.lastOffset + 1)
 
         // update the producer state
+        // 更新事务状态
         for (producerAppendInfo <- updatedProducers.values) {
           producerStateManager.update(producerAppendInfo)
         }
@@ -1341,10 +1353,11 @@ class Log(@volatile private var _dir: File,
           s"first offset: ${appendInfo.firstOffset}, " +
           s"next offset: ${nextOffsetMetadata.messageOffset}, " +
           s"and messages: $validRecords")
-
+        // 是否需要手动落盘， 一般情况下不需要设置Broker端的log.flush.interval.messages参数
+        // 落盘操作交由操作系统完成， 但是某些情况下可以设置这个参数保证可靠性
         if (unflushedMessages >= config.flushInterval)
           flush()
-
+        // 返回写入结果
         appendInfo
       }
     }
@@ -1448,37 +1461,37 @@ class Log(@volatile private var _dir: File,
   /**
    * Validate the following:
    * <ol>
-   * <li> each message matches its CRC
-   * <li> each message size is valid (if ignoreRecordSize is false)
-   * <li> that the sequence numbers of the incoming record batches are consistent with the existing state and with each other.
+   * <li> each message matches its CRC 每条消息斗鱼其CRC匹配
+   * <li> each message size is valid (if ignoreRecordSize is false) 每个消息大小都有效
+   * <li> that the sequence numbers of the incoming record batches are consistent with the existing state and with each other. 传入记录批次的序列号与现有状态以及彼此之间一致。
    * </ol>
    *
-   * Also compute the following quantities:
+   * Also compute the following quantities:  还计算以下数量
    * <ol>
-   * <li> First offset in the message set
-   * <li> Last offset in the message set
-   * <li> Number of messages
-   * <li> Number of valid bytes
-   * <li> Whether the offsets are monotonically increasing
-   * <li> Whether any compression codec is used (if many are used, then the last one is given)
+   * <li> First offset in the message set 消息集合的第一个偏移量
+   * <li> Last offset in the message set 消息集合的最后一个偏移量
+   * <li> Number of messages 消息数量
+   * <li> Number of valid bytes 有效字节数
+   * <li> Whether the offsets are monotonically increasing  偏移量是否单调递增
+   * <li> Whether any compression codec is used (if many are used, then the last one is given) 是否使用任何压缩编解码器（如果使用多个，则给出最后一个）
    * </ol>
    */
   private def analyzeAndValidateRecords(records: MemoryRecords,
                                         origin: AppendOrigin,
                                         ignoreRecordSize: Boolean): LogAppendInfo = {
-    var shallowMessageCount = 0
-    var validBytesCount = 0
-    var firstOffset: Option[Long] = None
-    var lastOffset = -1L
+    var shallowMessageCount = 0  // 消息计数器
+    var validBytesCount = 0  // 字节数统计
+    var firstOffset: Option[Long] = None  // 首个消息的偏移量
+    var lastOffset = -1L  // 最后一个消息的偏移量
     var sourceCodec: CompressionCodec = NoCompressionCodec
-    var monotonic = true
-    var maxTimestamp = RecordBatch.NO_TIMESTAMP
-    var offsetOfMaxTimestamp = -1L
-    var readFirstMessage = false
-    var lastOffsetOfFirstBatch = -1L
+    var monotonic = true  // 偏移量是否单调递增
+    var maxTimestamp = RecordBatch.NO_TIMESTAMP   // 最大时间戳
+    var offsetOfMaxTimestamp = -1L    // 最大时间戳的偏移量
+    var readFirstMessage = false  //第一消息可读？？
+    var lastOffsetOfFirstBatch = -1L  //第一批的最后一个偏移量？？
 
     for (batch <- records.batches.asScala) {
-      // we only validate V2 and higher to avoid potential compatibility issues with older clients
+      // we only validate V2 and higher to avoid potential compatibility issues with older clients  仅校验2.0版本以后的参数
       if (batch.magic >= RecordBatch.MAGIC_VALUE_V2 && origin == AppendOrigin.Client && batch.baseOffset != 0)
         throw new InvalidRecordException(s"The baseOffset of the record batch in the append to $topicPartition should " +
           s"be 0, but it is ${batch.baseOffset}")
