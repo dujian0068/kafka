@@ -98,20 +98,20 @@ object LeaderHwChange {
  *
  */
 case class LogAppendInfo(var firstOffset: Option[Long],
-                         var lastOffset: Long,
-                         var maxTimestamp: Long,
-                         var offsetOfMaxTimestamp: Long,
-                         var logAppendTime: Long,
-                         var logStartOffset: Long,
-                         var recordConversionStats: RecordConversionStats,
-                         sourceCodec: CompressionCodec,
-                         targetCodec: CompressionCodec,
-                         shallowCount: Int,
-                         validBytes: Int,
-                         offsetsMonotonic: Boolean,
-                         lastOffsetOfFirstBatch: Long,
-                         recordErrors: Seq[RecordError] = List(),
-                         errorMessage: String = null,
+                         var lastOffset: Long,  // 消息集合最后一条消息位移值
+                         var maxTimestamp: Long,  // 消息集合最大消息时间戳
+                         var offsetOfMaxTimestamp: Long,  // 消息集合最大消息时间戳所属消息的位移值
+                         var logAppendTime: Long, // 写入消息时间戳
+                         var logStartOffset: Long,  // 消息集合首条消息的位移值
+                         var recordConversionStats: RecordConversionStats,  // 消息转换统计类， 里面记录了执行了格式转换的消息等数据
+                         sourceCodec: CompressionCodec, // 消息集合中消息使用的压缩器（Compressor）类型， 比如是Snappy 还是LZ4
+                         targetCodec: CompressionCodec, // 写入消息时需要使用的压缩类型
+                         shallowCount: Int, // 消息批次数， 一个批次可能包含多个消息
+                         validBytes: Int, // 写入消息总字节数
+                         offsetsMonotonic: Boolean, // 消息位移值是否是顺序递增的
+                         lastOffsetOfFirstBatch: Long,  // 首个批次的最后一条消息位移值
+                         recordErrors: Seq[RecordError] = List(), // 写入消息时出现的异常列表
+                         errorMessage: String = null, // 错误码
                          leaderHwChange: LeaderHwChange = LeaderHwChange.None) {
   /**
    * Get the first offset if it exists, else get the last offset of the first batch
@@ -1487,7 +1487,7 @@ class Log(@volatile private var _dir: File,
     var monotonic = true  // 偏移量是否单调递增
     var maxTimestamp = RecordBatch.NO_TIMESTAMP   // 最大时间戳
     var offsetOfMaxTimestamp = -1L    // 最大时间戳的偏移量
-    var readFirstMessage = false  //第一消息可读？？
+    var readFirstMessage = false  //批次消息中第一个标志位
     var lastOffsetOfFirstBatch = -1L  //第一批的最后一个偏移量？？
 
     for (batch <- records.batches.asScala) {
@@ -1502,6 +1502,7 @@ class Log(@volatile private var _dir: File,
       // When appending to the leader, we will update LogAppendInfo.baseOffset with the correct value. In the follower
       // case, validation will be more lenient.
       // Also indicate whether we have the accurate first offset or not
+      // 是否是第一个消息
       if (!readFirstMessage) {
         if (batch.magic >= RecordBatch.MAGIC_VALUE_V2)
           firstOffset = Some(batch.baseOffset)
@@ -1509,23 +1510,23 @@ class Log(@volatile private var _dir: File,
         readFirstMessage = true
       }
 
-      // check that offsets are monotonically increasing
+      // check that offsets are monotonically increasing  判断偏移量是不是单调递增
       if (lastOffset >= batch.lastOffset)
         monotonic = false
 
-      // update the last offset seen
+      // update the last offset seen  更新lastOffset
       lastOffset = batch.lastOffset
 
       // Check if the message sizes are valid.
       val batchSize = batch.sizeInBytes
-      if (!ignoreRecordSize && batchSize > config.maxMessageSize) {
+      if (!ignoreRecordSize && batchSize > config.maxMessageSize) {  // 检查消息大小是否超出限制
         brokerTopicStats.topicStats(topicPartition.topic).bytesRejectedRate.mark(records.sizeInBytes)
         brokerTopicStats.allTopicsStats.bytesRejectedRate.mark(records.sizeInBytes)
         throw new RecordTooLargeException(s"The record batch size in the append to $topicPartition is $batchSize bytes " +
           s"which exceeds the maximum configured value of ${config.maxMessageSize}.")
       }
 
-      // check the validity of the message by checking CRC
+      // check the validity of the message by checking CRC  CRC有效性检查
       if (!batch.isValid) {
         brokerTopicStats.allTopicsStats.invalidMessageCrcRecordsPerSec.mark()
         throw new CorruptRecordException(s"Record is corrupt (stored crc = ${batch.checksum()}) in topic partition $topicPartition.")
@@ -1535,16 +1536,16 @@ class Log(@volatile private var _dir: File,
         maxTimestamp = batch.maxTimestamp
         offsetOfMaxTimestamp = lastOffset
       }
-
+      // 消息计数器
       shallowMessageCount += 1
-      validBytesCount += batchSize
+      validBytesCount += batchSize  // 字节计数器加字节
 
       val messageCodec = CompressionCodec.getCompressionCodec(batch.compressionType.id)
       if (messageCodec != NoCompressionCodec)
         sourceCodec = messageCodec
     }
 
-    // Apply broker-side compression if any
+    // Apply broker-side compression if any  处理压缩
     val targetCodec = BrokerCompressionCodec.getTargetCompressionCodec(config.compressionType, sourceCodec)
     LogAppendInfo(firstOffset, lastOffset, maxTimestamp, offsetOfMaxTimestamp, RecordBatch.NO_TIMESTAMP, logStartOffset,
       RecordConversionStats.EMPTY, sourceCodec, targetCodec, shallowMessageCount, validBytesCount, monotonic, lastOffsetOfFirstBatch)
@@ -1595,10 +1596,10 @@ class Log(@volatile private var _dir: File,
   /**
    * Read messages from the log.
    *
-   * @param startOffset   The offset to begin reading at
-   * @param maxLength     The maximum number of bytes to read
-   * @param isolation     The fetch isolation, which controls the maximum offset we are allowed to read
-   * @param minOneMessage If this is true, the first message will be returned even if it exceeds `maxLength` (if one exists)
+   * @param startOffset   The offset to begin reading at 读取消息的开始位置
+   * @param maxLength     The maximum number of bytes to read 最多读取多少个字节
+   * @param isolation     The fetch isolation, which controls the maximum offset we are allowed to read 设置读取隔离级别， 主要控制能够读取的最大位移值，多用于Kafka事务
+   * @param minOneMessage If this is true, the first message will be returned even if it exceeds `maxLength` (if one exists) 是否允许至少读取一条消息
    * @throws OffsetOutOfRangeException If startOffset is beyond the log end offset or before the log start offset
    * @return The fetch data information including fetch starting offset metadata and messages read.
    */
@@ -1614,21 +1615,30 @@ class Log(@volatile private var _dir: File,
 
       // Because we don't use the lock for reading, the synchronization is a little bit tricky.
       // We create the local variables to avoid race conditions with updates to the log.
+      // 使用局部变量避免竞争
       val endOffsetMetadata = nextOffsetMetadata
       val endOffset = endOffsetMetadata.messageOffset
+      // 获取到startOffset所在的日志段
       var segmentEntry = segments.floorEntry(startOffset)
 
       // return error on attempt to read beyond the log end offset or read below log start offset
+      // 处理消息越界： 越界情况：
+      // 1、要读取的消息位移超过了LEO
+      // 2、没找到日志段对象
+      // 3、要读取的消息在Log Start Offset之下，同样时对外不可见的消息
       if (startOffset > endOffset || segmentEntry == null || startOffset < logStartOffset)
         throw new OffsetOutOfRangeException(s"Received request for offset $startOffset for partition $topicPartition, " +
           s"but we only have log segments in the range $logStartOffset to $endOffset.")
-
+      // 查看一下读取隔离级别设置。
+      // 普通消费者能够看到[Log Start Offset, 高水位值)之间的消息
+      // 事务型消费者只能看到[Log Start Offset, Log Stable Offset]之间的消息。Log Stable Offset(LSO)是比LEO值小的位移值，为Kafka事务使用
+      // Follower副本消费者能够看到[Log Start Offset，LEO)之间的消息
       val maxOffsetMetadata = isolation match {
         case FetchLogEnd => endOffsetMetadata
         case FetchHighWatermark => fetchHighWatermarkMetadata
         case FetchTxnCommitted => fetchLastStableOffsetMetadata
       }
-
+      // 如果要读取的起始位置超过了能读取的最大位置，返回空的消息集合，因为没法读取任何消息
       if (startOffset == maxOffsetMetadata.messageOffset) {
         return emptyFetchDataInfo(maxOffsetMetadata, includeAbortedTxns)
       } else if (startOffset > maxOffsetMetadata.messageOffset) {
@@ -1639,9 +1649,10 @@ class Log(@volatile private var _dir: File,
       // Do the read on the segment with a base offset less than the target offset
       // but if that segment doesn't contain any messages with an offset greater than that
       // continue to read from successive segments until we get some messages or we reach the end of the log
+      // 开始遍历日志段对象， 直到读出来东西或者读到日志段尾
       while (segmentEntry != null) {
         val segment = segmentEntry.getValue
-
+        // 最大的偏移量
         val maxPosition = {
           // Use the max offset position if it is on this segment; otherwise, the segment size is the limit.
           if (maxOffsetMetadata.segmentBaseOffset == segment.baseOffset) {
@@ -1650,11 +1661,13 @@ class Log(@volatile private var _dir: File,
             segment.size
           }
         }
-
+        // 调用日志段对象的read方法执行真正的读取消息动作
         val fetchInfo = segment.read(startOffset, maxLength, maxPosition, minOneMessage)
         if (fetchInfo == null) {
+          // 如果没有读取到任何消息则切换到下一个日志段
           segmentEntry = segments.higherEntry(segmentEntry.getKey)
         } else {
+          // 返回读取到的兄爱心
           return if (includeAbortedTxns)
             addAbortedTransactions(startOffset, segmentEntry, fetchInfo)
           else
@@ -1665,6 +1678,7 @@ class Log(@volatile private var _dir: File,
       // okay we are beyond the end of the last segment with no data fetched although the start offset is in range,
       // this can happen when all messages with offset larger than start offsets have been deleted.
       // In this case, we will return the empty set with log end offset metadata
+      // 已经读取到日志末尾但是还是没有数据返回，只能返回空消息集合
       FetchDataInfo(nextOffsetMetadata, MemoryRecords.EMPTY)
     }
   }
