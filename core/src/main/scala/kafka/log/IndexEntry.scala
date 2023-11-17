@@ -31,7 +31,10 @@ sealed trait IndexEntry {
  * given offset.
  */
 case class OffsetPosition(offset: Long, position: Int) extends IndexEntry {
+  // 位移值
   override def indexKey = offset
+
+  // 物理磁盘位置
   override def indexValue = position.toLong
 }
 

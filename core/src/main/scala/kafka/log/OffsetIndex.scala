@@ -112,11 +112,15 @@ class OffsetIndex(_file: File, baseOffset: Long, maxIndexSize: Int = -1, writabl
     }
   }
 
+  // n * entrySize 第n个消息对应的索引在磁盘上的位置
+  // getInt(n * entrySize) 第n个消息对应的的相对位移
   private def relativeOffset(buffer: ByteBuffer, n: Int): Int = buffer.getInt(n * entrySize)
 
   private def physical(buffer: ByteBuffer, n: Int): Int = buffer.getInt(n * entrySize + 4)
 
   override protected def parseEntry(buffer: ByteBuffer, n: Int): OffsetPosition = {
+    // baseOffset + relativeOffset(buffer, n) 第n个消息的位移值
+    // physical(buffer, n)  物理磁盘位置
     OffsetPosition(baseOffset + relativeOffset(buffer, n), physical(buffer, n))
   }
 
@@ -140,13 +144,22 @@ class OffsetIndex(_file: File, baseOffset: Long, maxIndexSize: Int = -1, writabl
    */
   def append(offset: Long, position: Int): Unit = {
     inLock(lock) {
+      // 判断索引文件是否满了
       require(!isFull, "Attempt to append to a full index (size = " + _entries + ").")
+      // 1、当前索引文件为空
+      // 2、要写入的索引项的消息位移大于当前所有的已写入的索引项的消息位移——kafka规定索引项中的位移值必须是单调递增的
+      // 满足以上两个条件之一才能写入索引中
       if (_entries == 0 || offset > _lastOffset) {
         trace(s"Adding index entry $offset => $position to ${file.getAbsolutePath}")
+        // 向索引文件中写入相对位移值
         mmap.putInt(relativeOffset(offset))
+        // 向mmap中写入物理位置信息
         mmap.putInt(position)
+        // 更新索引计数器
         _entries += 1
+        // 更新当前索引项最大的消息位移值
         _lastOffset = offset
+        // 校验，写入的索引项格式必须符合要求， 即索引项个数*单个索引项占用的字节数匹配当前物理文件大小
         require(_entries * entrySize == mmap.position(), s"$entries entries but file position in index is ${mmap.position()}.")
       } else {
         throw new InvalidOffsetException(s"Attempt to append an offset ($offset) to position $entries no larger than" +
