@@ -904,6 +904,7 @@ public class KafkaProducer<K, V> implements Producer<K, V> {
             long nowMs = time.milliseconds();
             ClusterAndWaitTime clusterAndWaitTime;
             try {
+                // 获取目标topic的元数据集
                 clusterAndWaitTime = waitOnMetadata(record.topic(), record.partition(), nowMs, maxBlockTimeMs);
             } catch (KafkaException e) {
                 if (metadata.isClosed())
@@ -929,6 +930,7 @@ public class KafkaProducer<K, V> implements Producer<K, V> {
                         " to class " + producerConfig.getClass(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG).getName() +
                         " specified in value.serializer", cce);
             }
+            // 计算发送给哪个分区
             int partition = partition(record, serializedKey, serializedValue, cluster);
             tp = new TopicPartition(record.topic(), partition);
 
