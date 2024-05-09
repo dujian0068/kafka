@@ -69,52 +69,52 @@ import static org.apache.kafka.common.record.RecordBatch.NO_TIMESTAMP;
 public class Sender implements Runnable {
 
     private final Logger log;
-
+    // 网络通信客户端
     /* the state of each nodes connection */
     private final KafkaClient client;
-
+    // 消息批次管理器
     /* the record accumulator that batches records */
     private final RecordAccumulator accumulator;
-
+    // 元数据 topic的分区路由信息
     /* the metadata for the client */
     private final ProducerMetadata metadata;
-
+    // 手否需要保证消息顺序一致性
     /* the flag indicating whether the producer should guarantee the message order on the broker or not. */
     private final boolean guaranteeMessageOrder;
-
+    // 发到服务端的最大请求大小
     /* the maximum request size to attempt to send to the server */
     private final int maxRequestSize;
-
+    // 定义消息已经发送成功的标注
     /* the number of acknowledgements to request from the server */
     private final short acks;
-
+    // 重试次数
     /* the number of times to retry a failed request before giving up */
     private final int retries;
 
     /* the clock instance used for getting the time */
     private final Time time;
-
+    // sender线程状态
     /* true while the sender thread is still running */
     private volatile boolean running;
-
+    // 强制关闭，如果强制关闭会忽略正在发送的消息
     /* true when the caller wants to ignore all unsent/inflight messages and force close.  */
     private volatile boolean forceClose;
-
+    //
     /* metrics */
     private final SenderMetrics sensors;
-
+    // 超时时间
     /* the max time to wait for the server to respond to the request*/
     private final int requestTimeoutMs;
-
+    // 重试间隔
     /* The max time to wait before retrying a request which has failed */
     private final long retryBackoffMs;
-
+    // api版本信息
     /* current request API versions supported by the known brokers */
     private final ApiVersions apiVersions;
-
+    // 事务管理器
     /* all the state related to transactions, in particular the producer id, producer epoch, and sequence numbers */
     private final TransactionManager transactionManager;
-
+    // 每个分区的批次队列，按创建时间排序，用于跟踪正在进行的批次
     // A per-partition queue of batches ordered by creation time for tracking the in-flight batches
     private final Map<TopicPartition, List<ProducerBatch>> inFlightBatches;
 
@@ -293,6 +293,7 @@ public class Sender implements Runnable {
      *
      */
     void runOnce() {
+        // 事务处理
         if (transactionManager != null) {
             try {
                 transactionManager.maybeResolveSequences();
@@ -321,7 +322,9 @@ public class Sender implements Runnable {
         }
 
         long currentTimeMs = time.milliseconds();
+        // 将数据放到发送队列
         long pollTimeout = sendProducerData(currentTimeMs);
+        // 实际发送
         client.poll(pollTimeout, currentTimeMs);
     }
 

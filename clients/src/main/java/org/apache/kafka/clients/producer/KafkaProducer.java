@@ -242,10 +242,14 @@ public class KafkaProducer<K, V> implements Producer<K, V> {
     private final String clientId;
     // Visible for testing
     final Metrics metrics;
+    // partition manager
     private final Partitioner partitioner;
+    // the max size of every produceRecord
     private final int maxRequestSize;
+    // max memory buffer, the memory be used cache produceRecord
     private final long totalMemorySize;
     private final ProducerMetadata metadata;
+    // the record cache
     private final RecordAccumulator accumulator;
     private final Sender sender;
     private final Thread ioThread;
@@ -256,6 +260,7 @@ public class KafkaProducer<K, V> implements Producer<K, V> {
     private final Serializer<V> valueSerializer;
     private final ProducerConfig producerConfig;
     private final long maxBlockTimeMs;
+    // the produce interceptors used before append record cache
     private final ProducerInterceptors<K, V> interceptors;
     private final ApiVersions apiVersions;
     private final TransactionManager transactionManager;
@@ -899,12 +904,13 @@ public class KafkaProducer<K, V> implements Producer<K, V> {
     private Future<RecordMetadata> doSend(ProducerRecord<K, V> record, Callback callback) {
         TopicPartition tp = null;
         try {
+            // the producers close equals sender thread close
             throwIfProducerClosed();
             // first make sure the metadata for the topic is available
             long nowMs = time.milliseconds();
             ClusterAndWaitTime clusterAndWaitTime;
             try {
-                // 获取目标topic的元数据集
+                // 获取目标topic 分区等信息
                 clusterAndWaitTime = waitOnMetadata(record.topic(), record.partition(), nowMs, maxBlockTimeMs);
             } catch (KafkaException e) {
                 if (metadata.isClosed())

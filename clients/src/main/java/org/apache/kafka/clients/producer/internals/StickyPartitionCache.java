@@ -42,7 +42,7 @@ public class StickyPartitionCache {
         }
         return part;
     }
-
+    // 没有key计算发往的分区
     public int nextPartition(String topic, Cluster cluster, int prevPartition) {
         List<PartitionInfo> partitions = cluster.partitionsForTopic(topic);
         Integer oldPart = indexCache.get(topic);
