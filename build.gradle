@@ -1016,6 +1016,8 @@ project(':core') {
     testImplementation libs.caffeine
     
     generator project(':generator')
+    implementation group: 'org.slf4j', name: "slf4j-api", version: "1.7.36"
+    implementation group: 'org.slf4j', name: "slf4j-log4j12", version: "1.7.36"
   }
 
   if (userEnableTestCoverage) {
@@ -2796,6 +2798,9 @@ project(':log4j-appender') {
   dependencies {
     implementation project(':clients')
     implementation libs.slf4jlog4j
+    implementation group: 'org.slf4j', name: "slf4j-api", version: "1.7.36"
+    implementation group: 'org.slf4j', name: "slf4j-log4j12", version: "1.7.36"
+
 
     testImplementation project(':clients').sourceSets.test.output
     testImplementation libs.junitJupiter
@@ -3294,4 +3299,24 @@ task aggregatedJavadoc(type: Javadoc, dependsOn: compileJava) {
     options.links "https://docs.oracle.com/en/java/javase/${JavaVersion.current().majorVersion}/docs/api/"
   else
     options.links "https://docs.oracle.com/javase/8/docs/api/"
+}
+
+allprojects {
+  repositories {
+    // 本地仓库，地址是maven本地仓库地址
+    maven {url "file:/E:/repository"}
+    // 阿里云仓库
+    maven { url 'https://maven.aliyun.com/repository/central' }
+    maven { url 'https://maven.aliyun.com/repository/google' }
+    maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+    maven { url 'https://maven.aliyun.com/repository/jcenter' }
+    maven { url 'https://maven.aliyun.com/repository/spring' }
+    maven { url 'https://maven.aliyun.com/repository/spring-plugin' }
+    maven { url 'https://maven.aliyun.com/repository/releases' }
+    maven { url 'https://maven.aliyun.com/repository/spring-plugin' }
+    maven { url 'https://maven.aliyun.com/repository/public' }
+    maven { url 'https://maven.aliyun.com/repository/releases' }
+    maven { url 'https://maven.aliyun.com/repository/grails-core' }
+    maven { url 'https://maven.aliyun.com/repository/mapr-public' }
+  }
 }
