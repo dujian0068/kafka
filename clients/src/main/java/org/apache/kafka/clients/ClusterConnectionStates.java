@@ -41,7 +41,8 @@ final class ClusterConnectionStates {
     final static double RECONNECT_BACKOFF_JITTER = 0.2;
     final static int CONNECTION_SETUP_TIMEOUT_EXP_BASE = 2;
     final static double CONNECTION_SETUP_TIMEOUT_JITTER = 0.2;
-    private final Map<String, NodeConnectionState> nodeState;
+    // every kafka cluster  node connect status， key is node id
+    private final Map<String, NodeConnectionState> nodeState;  //
     private final Logger log;
     private final HostResolver hostResolver;
     private Set<String> connectingNodes;

@@ -516,7 +516,7 @@ public class KafkaProducer<K, V> implements Producer<K, V> {
 
     // visible for testing
     Sender newSender(LogContext logContext, KafkaClient kafkaClient, ProducerMetadata metadata) {
-        int maxInflightRequests = producerConfig.getInt(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION);
+        int maxInFlightRequests = producerConfig.getInt(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION);
         int requestTimeoutMs = producerConfig.getInt(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG);
         ProducerMetrics metricsRegistry = new ProducerMetrics(this.metrics);
         Sensor throttleTimeSensor = Sender.throttleTimeSensor(metricsRegistry.senderMetrics);
@@ -526,7 +526,7 @@ public class KafkaProducer<K, V> implements Producer<K, V> {
                 logContext,
                 apiVersions,
                 time,
-                maxInflightRequests,
+                maxInFlightRequests,
                 metadata,
                 throttleTimeSensor,
                 clientTelemetryReporter.map(ClientTelemetryReporter::telemetrySender).orElse(null));

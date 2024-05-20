@@ -124,7 +124,7 @@ public class NetworkClient implements KafkaClient {
     private final ApiVersions apiVersions;
 
     private final Map<String, ApiVersionsRequest.Builder> nodesNeedingApiVersionsFetch = new HashMap<>();
-
+    // client abort send request list
     private final List<ClientResponse> abortedSends = new LinkedList<>();
 
     private final Sensor throttleTimeSensor;
@@ -578,7 +578,7 @@ public class NetworkClient implements KafkaClient {
             completeResponses(responses);
             return responses;
         }
-
+        // 更新元数据
         long metadataTimeout = metadataUpdater.maybeUpdate(now);
         long telemetryTimeout = telemetrySender != null ? telemetrySender.maybeUpdate(now) : Integer.MAX_VALUE;
         try {
@@ -696,20 +696,20 @@ public class NetworkClient implements KafkaClient {
      */
     @Override
     public Node leastLoadedNode(long now) {
-        List<Node> nodes = this.metadataUpdater.fetchNodes();
+        List<Node> nodes = this.metadataUpdater.fetchNodes();  // get the kafka cluster all node
         if (nodes.isEmpty())
             throw new IllegalStateException("There are no nodes in the Kafka cluster");
         int inflight = Integer.MAX_VALUE;
 
-        Node foundConnecting = null;
-        Node foundCanConnect = null;
-        Node foundReady = null;
+        Node foundConnecting = null;  // connecting node
+        Node foundCanConnect = null;  // can connect node
+        Node foundReady = null;  // connected and can send more request node
 
         int offset = this.randOffset.nextInt(nodes.size());
         for (int i = 0; i < nodes.size(); i++) {
             int idx = (offset + i) % nodes.size();
             Node node = nodes.get(idx);
-            if (canSendRequest(node.idString(), now)) {
+            if (canSendRequest(node.idString(), now)) {  // 检查是否已经连接成功
                 int currInflight = this.inFlightRequests.count(node.idString());
                 if (currInflight == 0) {
                     // if we find an established connection with no in-flight requests we can stop right away

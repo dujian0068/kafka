@@ -67,7 +67,18 @@ public class MetadataSnapshot {
         this(clusterId, nodes, partitions, unauthorizedTopics, invalidTopics, internalTopics, controller, topicIds, null);
     }
 
-    // Visible for testing
+    /**
+     *
+     * @param clusterId the cluster id, init empty
+     * @param nodes kafka cluster node address、id info
+     * @param partitions partition info for topic
+     * @param unauthorizedTopics
+     * @param invalidTopics
+     * @param internalTopics
+     * @param controller
+     * @param topicIds
+     * @param clusterInstance
+     */
     public MetadataSnapshot(String clusterId,
         Map<Integer, Node> nodes,
         Collection<PartitionMetadata> partitions,
