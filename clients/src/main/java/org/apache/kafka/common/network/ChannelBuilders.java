@@ -49,6 +49,7 @@ public class ChannelBuilders {
     private ChannelBuilders() { }
 
     /**
+     * build ChannelBuilder in accordance with SecurityProtocol
      * @param securityProtocol the securityProtocol
      * @param contextType the contextType, it must be non-null if `securityProtocol` is SASL_*; it is ignored otherwise
      * @param config client config
