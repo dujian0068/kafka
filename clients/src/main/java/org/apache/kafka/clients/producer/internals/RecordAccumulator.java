@@ -70,9 +70,11 @@ public class RecordAccumulator {
 
     private final LogContext logContext;
     private final Logger log;
+    // sender线城市否关闭
     private volatile boolean closed;
     private final AtomicInteger flushesInProgress;
     private final AtomicInteger appendsInProgress;
+    // 批次大小
     private final int batchSize;
     private final CompressionType compression;
     private final int lingerMs;

@@ -32,8 +32,10 @@ import java.util.concurrent.ThreadLocalRandom;
  * This class is thread-safe.
  */
 public class ExponentialBackoff {
+    // 重试最短间隔时间
     private final long initialInterval;
     private final int multiplier;
+    // 重试最长间隔时间
     private final long maxInterval;
     private final double jitter;
     private final double expMax;

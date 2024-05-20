@@ -69,7 +69,7 @@ public class ProducerMetadata extends Metadata {
         Objects.requireNonNull(topic, "topic cannot be null");
         if (topics.put(topic, nowMs + metadataIdleMs) == null) {
             newTopics.add(topic);
-            requestUpdateForNewTopics();
+            requestUpdateForNewTopics(); // set the topic metadata update flag
         }
     }
 

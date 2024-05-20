@@ -238,29 +238,42 @@ public class KafkaProducer<K, V> implements Producer<K, V> {
     private static final String JMX_PREFIX = "kafka.producer";
     public static final String NETWORK_THREAD_PREFIX = "kafka-producer-network-thread";
     public static final String PRODUCER_METRIC_GROUP_NAME = "producer-metrics";
-
+    // 客户端id，每个线程单独不同，默认规则为producer- + transactionId/自增id(线程安全)
     private final String clientId;
     // Visible for testing
     final Metrics metrics;
     private final KafkaProducerMetrics producerMetrics;
+    // 分区选择器
     private final Partitioner partitioner;
+    // 单个请求最大值
     private final int maxRequestSize;
+    // buffer池最大大小
     private final long totalMemorySize;
+    // kafka集群和topic的元数据，会判断是都需要更新元数据
     private final ProducerMetadata metadata;
+    // 消息缓存区
     private final RecordAccumulator accumulator;
+    // 异步io线程
     private final Sender sender;
     private final Thread ioThread;
+    // 压缩方式
     private final CompressionType compressionType;
     private final Sensor errors;
     private final Time time;
+    // 序列化器
     private final Serializer<K> keySerializer;
     private final Serializer<V> valueSerializer;
+    // producer配置
     private final ProducerConfig producerConfig;
+    // 最大阻塞时间（producer某些操作最大阻塞时间 ProducerConfig.MAX_BLOCK_MS_DOC）
     private final long maxBlockTimeMs;
     private final boolean partitionerIgnoreKeys;
+    // 拦截器  在发送之前拦截
     private final ProducerInterceptors<K, V> interceptors;
     private final ApiVersions apiVersions;
+    // 事务管理器
     private final TransactionManager transactionManager;
+    // kafka监控
     private final Optional<ClientTelemetryReporter> clientTelemetryReporter;
 
     /**
@@ -516,8 +529,8 @@ public class KafkaProducer<K, V> implements Producer<K, V> {
 
     // visible for testing
     Sender newSender(LogContext logContext, KafkaClient kafkaClient, ProducerMetadata metadata) {
-        int maxInflightRequests = producerConfig.getInt(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION);
-        int requestTimeoutMs = producerConfig.getInt(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG);
+        int maxInflightRequests = producerConfig.getInt(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION); // 每个链接可以有多少个没有收到响应的请求
+        int requestTimeoutMs = producerConfig.getInt(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG); // 请求超时时间
         ProducerMetrics metricsRegistry = new ProducerMetrics(this.metrics);
         Sensor throttleTimeSensor = Sender.throttleTimeSensor(metricsRegistry.senderMetrics);
         KafkaClient client = kafkaClient != null ? kafkaClient : ClientUtils.createNetworkClient(producerConfig,
@@ -995,6 +1008,7 @@ public class KafkaProducer<K, V> implements Producer<K, V> {
             long nowMs = time.milliseconds();
             ClusterAndWaitTime clusterAndWaitTime;
             try {
+                // 初始化tpoic元数据
                 clusterAndWaitTime = waitOnMetadata(record.topic(), record.partition(), nowMs, maxBlockTimeMs);
             } catch (KafkaException e) {
                 if (metadata.isClosed())

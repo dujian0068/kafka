@@ -117,8 +117,10 @@ public class Selector implements Selectable, AutoCloseable {
     private final Time time;
     private final SelectorMetrics sensors;
     private final ChannelBuilder channelBuilder;
+    // 单个线程最大接收的字节数
     private final int maxReceiveSize;
     private final boolean recordTimePerConnection;
+    // 空闲链接过期管理器
     private final IdleExpiryManager idleExpiryManager;
     private final LinkedHashMap<String, DelayedAuthenticationFailureClose> delayedClosingChannels;
     private final MemoryPool memoryPool;
