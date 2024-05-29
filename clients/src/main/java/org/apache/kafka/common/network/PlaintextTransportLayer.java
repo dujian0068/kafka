@@ -44,7 +44,7 @@ public class PlaintextTransportLayer implements TransportLayer {
     public boolean ready() {
         return true;
     }
-
+    // remove OP_CONNECT watch, and register OP_READ
     @Override
     public boolean finishConnect() throws IOException {
         boolean connected = socketChannel.finishConnect();

@@ -378,6 +378,7 @@ object KafkaConfig {
   val NumReplicaAlterLogDirsThreadsProp = "num.replica.alter.log.dirs.threads"
   val QueuedMaxRequestsProp = "queued.max.requests"
   val QueuedMaxBytesProp = "queued.max.request.bytes"
+  val QueueMaxBytesDoc = "the max bytes of the request queue in memory"
   val RequestTimeoutMsProp = CommonClientConfigs.REQUEST_TIMEOUT_MS_CONFIG
   val ConnectionSetupTimeoutMsProp = CommonClientConfigs.SOCKET_CONNECTION_SETUP_TIMEOUT_MS_CONFIG
   val ConnectionSetupTimeoutMaxMsProp = CommonClientConfigs.SOCKET_CONNECTION_SETUP_TIMEOUT_MAX_MS_CONFIG
@@ -422,6 +423,7 @@ object KafkaConfig {
   val SocketReceiveBufferBytesProp = "socket.receive.buffer.bytes"
   val SocketRequestMaxBytesProp = "socket.request.max.bytes"
   val SocketListenBacklogSizeProp = "socket.listen.backlog.size"
+  val SocketListenBacklogSizeDoc = "the socket number of recived connection request, and not accept"
   val MaxConnectionsPerIpProp = "max.connections.per.ip"
   val MaxConnectionsPerIpOverridesProp = "max.connections.per.ip.overrides"
   val MaxConnectionsProp = "max.connections"

@@ -112,7 +112,7 @@ public class Selector implements Selectable, AutoCloseable {
     private final Map<String, KafkaChannel> closingChannels;
     private Set<SelectionKey> keysWithBufferedRead;
     private final Map<String, ChannelState> disconnected;
-    private final List<String> connected;
+    private final List<String> connected;    // list of connected with cluster node
     private final List<String> failedSends;
     private final Time time;
     private final SelectorMetrics sensors;

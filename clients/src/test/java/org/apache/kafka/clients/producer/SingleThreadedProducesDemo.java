@@ -32,6 +32,7 @@ public class SingleThreadedProducesDemo {
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
 //        props.put(ProducerConfig.ACKS_CONFIG, "all");
         props.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "zstd");
+        props.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 60 * 60 * 1000);
 //        props.put(ProducerConfig.LINGER_MS_CONFIG, "10000000"); // 例如，设置为1000毫秒
 //        props.put("max.block.ms", 600000 );
         props.put("max.request.size", 26214400);

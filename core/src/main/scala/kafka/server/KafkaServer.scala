@@ -193,7 +193,7 @@ class KafkaServer(
 
   override def replicaManager: ReplicaManager = _replicaManager
 
-  override def logManager: LogManager = _logManager
+  override def logManager: LogManager =_logManager
 
   @volatile def kafkaController: KafkaController = _kafkaController
 
@@ -230,7 +230,7 @@ class KafkaServer(
         _clusterId = getOrGenerateClusterId(zkClient)
         info(s"Cluster ID = $clusterId")
 
-        /* load metadata */
+        /* load metadata(broker metadata, not topic metadata) */
         val initialMetaPropsEnsemble = {
           val loader = new MetaPropertiesEnsemble.Loader()
           config.logDirs.foreach(loader.addLogDir(_))
