@@ -233,7 +233,7 @@ public class KafkaChannel implements AutoCloseable {
         }
         return connected;
     }
-
+    // only check the node is connected
     public boolean isConnected() {
         return transportLayer.isConnected();
     }

@@ -75,24 +75,24 @@ import scala.util.control.ControlThrowable
  */
 class SocketServer(val config: KafkaConfig,
                    val metrics: Metrics,
-                   val time: Time,
+                   val time: Time, // todo  应该是单例？
                    val credentialProvider: CredentialProvider,
                    val apiVersionManager: ApiVersionManager)
   extends Logging with BrokerReconfigurable {
-
+  // 指标组？？
   private val metricsGroup = new KafkaMetricsGroup(this.getClass)
-
+  // 请求队列长度  默认500
   private val maxQueuedRequests = config.queuedMaxRequests
-
+  // 自己配置的
   protected val nodeId = config.brokerId
 
   private val logContext = new LogContext(s"[SocketServer listenerType=${apiVersionManager.listenerType}, nodeId=$nodeId] ")
 
   this.logIdent = logContext.logPrefix
-
+  // 内存池检测器
   private val memoryPoolSensor = metrics.sensor("MemoryPoolUtilization")
-  private val memoryPoolDepletedPercentMetricName = metrics.metricName("MemoryPoolAvgDepletedPercent", MetricsGroup)
-  private val memoryPoolDepletedTimeMetricName = metrics.metricName("MemoryPoolDepletedTimeTotal", MetricsGroup)
+  private val memoryPoolDepletedPercentMetricName = metrics.metricName("MemoryPoolAvgDepletedPercent", MetricsGroup) // 内存池耗尽百分比指标名称
+  private val memoryPoolDepletedTimeMetricName = metrics.metricName("MemoryPoolDepletedTimeTotal", MetricsGroup) // 内存池耗尽时间指标
   memoryPoolSensor.add(new Meter(TimeUnit.MILLISECONDS, memoryPoolDepletedPercentMetricName, memoryPoolDepletedTimeMetricName))
   private val memoryPool = if (config.queuedMaxBytes > 0) new SimpleMemoryPool(config.queuedMaxBytes, config.socketRequestMaxBytes, false, memoryPoolSensor) else MemoryPool.NONE
   // data-plane
@@ -104,7 +104,7 @@ class SocketServer(val config: KafkaConfig,
     new RequestChannel(20, ControlPlaneAcceptor.MetricPrefix, time, apiVersionManager.newRequestMetrics))
 
   private[this] val nextProcessorId: AtomicInteger = new AtomicInteger(0)
-  val connectionQuotas = new ConnectionQuotas(config, time, metrics)
+  val connectionQuotas = new ConnectionQuotas(config, time, metrics)  //todo  连接配额？
 
   /**
    * A future which is completed once all the authorizer futures are complete.
