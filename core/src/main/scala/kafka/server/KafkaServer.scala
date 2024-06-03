@@ -733,7 +733,7 @@ class KafkaServer(
     _zkClient = KafkaZkClient.createZkClient("Kafka server", time, config, zkClientConfig)
     _zkClient.createTopLevelPaths()
   }
-
+  // clusterId 是 uuid base64算出来
   private def getOrGenerateClusterId(zkClient: KafkaZkClient): String = {
     zkClient.getClusterId.getOrElse(zkClient.createOrGetClusterId(CoreUtils.generateUuidAsBase64()))
   }
