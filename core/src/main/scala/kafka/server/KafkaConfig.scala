@@ -423,7 +423,6 @@ object KafkaConfig {
   val SocketReceiveBufferBytesProp = "socket.receive.buffer.bytes"
   val SocketRequestMaxBytesProp = "socket.request.max.bytes"
   val SocketListenBacklogSizeProp = "socket.listen.backlog.size"
-  val SocketListenBacklogSizeDoc = "the socket number of recived connection request, and not accept"
   val MaxConnectionsPerIpProp = "max.connections.per.ip"
   val MaxConnectionsPerIpOverridesProp = "max.connections.per.ip.overrides"
   val MaxConnectionsProp = "max.connections"
