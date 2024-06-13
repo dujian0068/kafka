@@ -107,7 +107,7 @@ public class Selector implements Selectable, AutoCloseable {
     private final Set<KafkaChannel> explicitlyMutedChannels;
     private boolean outOfMemory;
     private final List<NetworkSend> completedSends;
-    private final LinkedHashMap<String, NetworkReceive> completedReceives;
+    private final LinkedHashMap<String, NetworkReceive> completedReceives;  // receive request data and not deal
     private final Set<SelectionKey> immediatelyConnectedKeys;
     private final Map<String, KafkaChannel> closingChannels;
     private Set<SelectionKey> keysWithBufferedRead;
