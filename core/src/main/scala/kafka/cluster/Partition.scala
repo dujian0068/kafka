@@ -1365,7 +1365,7 @@ class Partition(val topicPartition: TopicPartition,
   def appendRecordsToLeader(records: MemoryRecords, origin: AppendOrigin, requiredAcks: Int,
                             requestLocal: RequestLocal, verificationGuard: VerificationGuard = VerificationGuard.SENTINEL): LogAppendInfo = {
     val (info, leaderHWIncremented) = inReadLock(leaderIsrUpdateLock) {
-      leaderLogIfLocal match {
+      leaderLogIfLocal match {  // leader of a partition can write record
         case Some(leaderLog) =>
           val minIsr = effectiveMinIsr(leaderLog)
           val inSyncSize = partitionState.isr.size
