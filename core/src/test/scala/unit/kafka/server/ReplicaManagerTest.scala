@@ -4030,6 +4030,7 @@ class ReplicaManagerTest {
       _ => Optional.of(mockLog),
       (TopicPartition, Long) => {},
       brokerTopicStats)
+    remoteLogManager.startup()
     val spyRLM = spy(remoteLogManager)
 
     val replicaManager = setupReplicaManagerWithMockedPurgatories(new MockTimer(time), aliveBrokerIds = Seq(0, 1, 2), enableRemoteStorage = true, shouldMockLog = true, remoteLogManager = Some(spyRLM))
@@ -4128,6 +4129,7 @@ class ReplicaManagerTest {
       _ => Optional.of(dummyLog),
       (TopicPartition, Long) => {},
       brokerTopicStats)
+    remoteLogManager.startup()
     val spyRLM = spy(remoteLogManager)
     val timer = new MockTimer(time)
 
@@ -5897,6 +5899,7 @@ class ReplicaManagerTest {
         .setPartitionId(0)
         .setTopicId(FOO_UUID)
         .setReplicas(util.Arrays.asList(localId, localId + 1, localId + 2))
+        .setDirectories(util.Arrays.asList(Uuid.fromString("fKgQ2axkQiuzt4ANqKbPkQ"), DirectoryId.UNASSIGNED, DirectoryId.UNASSIGNED))
         .setIsr(util.Arrays.asList(localId, localId + 1))
       )
       followerMetadataImage = imageFromTopics(followerTopicsDelta.apply())
@@ -6376,6 +6379,39 @@ class ReplicaManagerTest {
         assertEquals(Errors.NONE.code, response.errorCode)
         assertTrue(response.totalBytes > 0)
         assertTrue(response.usableBytes >= 0)
+        assertFalse(response.topics().isEmpty)
+        response.topics().forEach(t => assertFalse(t.partitions().isEmpty))
+      }
+    } finally {
+      replicaManager.shutdown(checkpointHW = false)
+    }
+  }
+
+  @Test
+  def testDescribeLogDirsWithoutAnyPartitionTopic(): Unit = {
+    val noneTopic = "none-topic"
+    val topicPartition = 0
+    val topicId = Uuid.randomUuid()
+    val followerBrokerId = 0
+    val leaderBrokerId = 1
+    val leaderEpoch = 1
+    val leaderEpochIncrement = 2
+    val countDownLatch = new CountDownLatch(1)
+    val offsetFromLeader = 5
+
+    // Prepare the mocked components for the test
+    val (replicaManager, mockLogMgr) = prepareReplicaManagerAndLogManager(new MockTimer(time),
+      topicPartition, leaderEpoch + leaderEpochIncrement, followerBrokerId, leaderBrokerId, countDownLatch,
+      expectTruncation = false, localLogOffset = Some(10), offsetFromLeader = offsetFromLeader, topicId = Some(topicId))
+
+    try {
+      val responses = replicaManager.describeLogDirs(Set(new TopicPartition(noneTopic, topicPartition)))
+      assertEquals(mockLogMgr.liveLogDirs.size, responses.size)
+      responses.foreach { response =>
+        assertEquals(Errors.NONE.code, response.errorCode)
+        assertTrue(response.totalBytes > 0)
+        assertTrue(response.usableBytes >= 0)
+        assertTrue(response.topics().isEmpty)
       }
     } finally {
       replicaManager.shutdown(checkpointHW = false)

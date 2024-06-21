@@ -40,6 +40,7 @@ import org.apache.kafka.coordinator.group.metrics.{GroupCoordinatorMetrics, Grou
 import org.apache.kafka.coordinator.group.util.SystemTimerReaper
 import org.apache.kafka.coordinator.group.{GroupCoordinator, GroupCoordinatorConfig, GroupCoordinatorService, RecordSerde}
 import org.apache.kafka.image.publisher.MetadataPublisher
+import org.apache.kafka.image.publisher.BrokerRegistrationTracker
 import org.apache.kafka.metadata.{BrokerState, ListenerInfo, VersionRange}
 import org.apache.kafka.raft.RaftConfig
 import org.apache.kafka.server.{AssignmentsManager, ClientMetricsManager, NodeToControllerChannelManager}
@@ -139,6 +140,8 @@ class BrokerServer(
   val clusterId: String = sharedServer.metaPropsEnsemble.clusterId().get()
 
   var brokerMetadataPublisher: BrokerMetadataPublisher = _
+
+  var brokerRegistrationTracker: BrokerRegistrationTracker = _
 
   val brokerFeatures: BrokerFeatures = BrokerFeatures.createDefault(config.unstableMetadataVersionsEnabled)
 
@@ -419,6 +422,24 @@ class BrokerServer(
         config.numIoThreads, s"${DataPlaneAcceptor.MetricPrefix}RequestHandlerAvgIdlePercent",
         DataPlaneAcceptor.ThreadPrefix)
 
+      // Start RemoteLogManager before initializing broker metadata publishers.
+      remoteLogManagerOpt.foreach { rlm =>
+        val listenerName = config.remoteLogManagerConfig.remoteLogMetadataManagerListenerName()
+        if (listenerName != null) {
+          val endpoint = listenerInfo.listeners().values().stream
+            .filter(e =>
+              e.listenerName().isPresent &&
+                ListenerName.normalised(e.listenerName().get()).equals(ListenerName.normalised(listenerName))
+            )
+            .findFirst()
+            .orElseThrow(() => new ConfigException(RemoteLogManagerConfig.REMOTE_LOG_METADATA_MANAGER_LISTENER_NAME_PROP,
+              listenerName, "Should be set as a listener name within valid broker listener name list: " + listenerInfo.listeners().values()))
+          rlm.onEndPointCreated(EndPoint.fromJava(endpoint))
+        }
+        rlm.startup()
+      }
+
+      metadataPublishers.add(new MetadataVersionConfigValidator(config, sharedServer.metadataPublishingFaultHandler))
       brokerMetadataPublisher = new BrokerMetadataPublisher(config,
         metadataCache,
         logManager,
@@ -456,6 +477,11 @@ class BrokerServer(
         lifecycleManager
       )
       metadataPublishers.add(brokerMetadataPublisher)
+      brokerRegistrationTracker = new BrokerRegistrationTracker(config.brokerId,
+        logManager.directoryIdsSet.toList.asJava,
+        () => lifecycleManager.resendBrokerRegistrationUnlessZkMode())
+      metadataPublishers.add(brokerRegistrationTracker)
+
 
       // Register parts of the broker that can be reconfigured via dynamic configs.  This needs to
       // be done before we publish the dynamic configs, so that we don't miss anything.
@@ -487,23 +513,6 @@ class BrokerServer(
       // by the dynamic configuration publisher. Ironically, KafkaConfig.originals does not
       // contain the original configuration values.
       new KafkaConfig(config.originals(), true)
-
-      // Start RemoteLogManager before broker start serving the requests.
-      remoteLogManagerOpt.foreach { rlm =>
-        val listenerName = config.remoteLogManagerConfig.remoteLogMetadataManagerListenerName()
-        if (listenerName != null) {
-          val endpoint = listenerInfo.listeners().values().stream
-            .filter(e =>
-              e.listenerName().isPresent &&
-              ListenerName.normalised(e.listenerName().get()).equals(ListenerName.normalised(listenerName))
-            )
-            .findFirst()
-            .orElseThrow(() => new ConfigException(RemoteLogManagerConfig.REMOTE_LOG_METADATA_MANAGER_LISTENER_NAME_PROP,
-              listenerName, "Should be set as a listener name within valid broker listener name list: " + listenerInfo.listeners().values()))
-          rlm.onEndPointCreated(EndPoint.fromJava(endpoint))
-        }
-        rlm.startup()
-      }
 
       // We're now ready to unfence the broker. This also allows this broker to transition
       // from RECOVERY state to RUNNING state, once the controller unfences the broker.

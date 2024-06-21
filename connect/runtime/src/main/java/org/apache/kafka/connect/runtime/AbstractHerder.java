@@ -79,6 +79,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -117,7 +118,7 @@ import java.util.stream.Collectors;
  */
 public abstract class AbstractHerder implements Herder, TaskStatus.Listener, ConnectorStatus.Listener {
 
-    private final Logger log = LoggerFactory.getLogger(AbstractHerder.class);
+    private static final Logger log = LoggerFactory.getLogger(AbstractHerder.class);
 
     private final String workerId;
     protected final Worker worker;
@@ -845,19 +846,28 @@ public abstract class AbstractHerder implements Herder, TaskStatus.Listener, Con
         return result;
     }
 
-    public boolean taskConfigsChanged(ClusterConfigState configState, String connName, List<Map<String, String>> taskProps) {
+    public static boolean taskConfigsChanged(ClusterConfigState configState, String connName, List<Map<String, String>> rawTaskProps) {
         int currentNumTasks = configState.taskCount(connName);
         boolean result = false;
-        if (taskProps.size() != currentNumTasks) {
-            log.debug("Connector {} task count changed from {} to {}", connName, currentNumTasks, taskProps.size());
+        if (rawTaskProps.size() != currentNumTasks) {
+            log.debug("Connector {} task count changed from {} to {}", connName, currentNumTasks, rawTaskProps.size());
             result = true;
-        } else {
+        }
+        if (!result) {
             for (int index = 0; index < currentNumTasks; index++) {
                 ConnectorTaskId taskId = new ConnectorTaskId(connName, index);
-                if (!taskProps.get(index).equals(configState.taskConfig(taskId))) {
+                if (!rawTaskProps.get(index).equals(configState.rawTaskConfig(taskId))) {
                     log.debug("Connector {} has change in configuration for task {}-{}", connName, connName, index);
                     result = true;
                 }
+            }
+        }
+        if (!result) {
+            Map<String, String> appliedConnectorConfig = configState.appliedConnectorConfig(connName);
+            Map<String, String> currentConnectorConfig = configState.connectorConfig(connName);
+            if (!Objects.equals(appliedConnectorConfig, currentConnectorConfig)) {
+                log.debug("Forcing task restart for connector {} as its configuration appears to be updated", connName);
+                result = true;
             }
         }
         if (result) {
