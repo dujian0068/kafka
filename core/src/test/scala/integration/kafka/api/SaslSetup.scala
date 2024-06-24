@@ -199,7 +199,7 @@ trait SaslSetup {
     })
   }
 
-  def createScramCredentials(zkConnect: String, userName: String, password: String): Unit = {
+  def createScramCredentials(zkConnect: String, userName: String, password: Array[Char]): Unit = {
     val zkClientConfig = new ZKClientConfig()
     Using(KafkaZkClient(
       zkConnect, JaasUtils.isZkSaslEnabled || KafkaConfig.zkTlsClientAuthEnabled(zkClientConfig), 30000, 30000,

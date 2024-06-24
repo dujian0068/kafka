@@ -133,14 +133,14 @@ class DelegationTokenManager(val config: KafkaConfig,
    * @param token
    */
   protected def updateCache(token: DelegationToken): Unit = {
-    val hmacString = token.hmacAsBase64String
+    val hmacString = token.hmacAsBase64String.toCharArray
     val scramCredentialMap =  prepareScramCredentials(hmacString)
     tokenCache.updateCache(token, scramCredentialMap.asJava)
   }
   /**
    * @param hmacString
    */
-  private def prepareScramCredentials(hmacString: String) : Map[String, ScramCredential] = {
+  private def prepareScramCredentials(hmacString: Array[Char]) : Map[String, ScramCredential] = {
     val scramCredentialMap = mutable.Map[String, ScramCredential]()
 
     def scramCredential(mechanism: ScramMechanism): ScramCredential = {

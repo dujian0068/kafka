@@ -23,11 +23,15 @@ import org.apache.kafka.common.security.scram.internals.ScramMessages.ClientFirs
 import org.apache.kafka.common.security.scram.internals.ScramMessages.ServerFirstMessage;
 
 import java.math.BigInteger;
+import java.nio.CharBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CharsetEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,6 +47,7 @@ public class ScramFormatter {
     private static final Pattern COMMA = Pattern.compile(",", Pattern.LITERAL);
     private static final Pattern EQUAL_TWO_C = Pattern.compile("=2C", Pattern.LITERAL);
     private static final Pattern EQUAL_THREE_D = Pattern.compile("=3D", Pattern.LITERAL);
+    private static final CharsetEncoder ENCODER = StandardCharsets.UTF_8.newEncoder();
 
     private final MessageDigest messageDigest;
     private final Mac mac;
@@ -86,11 +91,11 @@ public class ScramFormatter {
         return result;
     }
 
-    public static byte[] normalize(String str) {
-        return toBytes(str);
+    public static byte[] normalize(char[] chars) {
+        return toBytes(chars);
     }
 
-    public byte[] saltedPassword(String password, byte[] salt, int iterations) throws InvalidKeyException {
+    public byte[] saltedPassword(char[] password, byte[] salt, int iterations) throws InvalidKeyException {
         return hi(normalize(password), salt, iterations);
     }
 
@@ -170,7 +175,15 @@ public class ScramFormatter {
         return str.getBytes(StandardCharsets.UTF_8);
     }
 
-    public ScramCredential generateCredential(String password, int iterations) {
+    public static byte[] toBytes(char[] chars) {
+        try {
+            return ENCODER.encode(CharBuffer.wrap(chars)).array();
+        } catch (CharacterCodingException e) {
+            throw new IllegalStateException("Failed to encode " + Arrays.toString(chars), e);
+        }
+    }
+
+    public ScramCredential generateCredential(char[] password, int iterations) {
         try {
             byte[] salt = secureRandomBytes();
             byte[] saltedPassword = saltedPassword(password, salt, iterations);

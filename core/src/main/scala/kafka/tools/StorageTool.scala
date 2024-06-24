@@ -322,7 +322,7 @@ object StorageTool extends Logging {
         if (argMap.contains("saltedpassword")) {
             throw new TerseFailure(s"You must only supply one of 'password' or 'saltedpassword' to add-scram")
         }
-        new ScramFormatter(scramMechanism).saltedPassword(argMap("password"), salt, iterations)
+        new ScramFormatter(scramMechanism).saltedPassword(argMap("password").toCharArray, salt, iterations)
       } else {
         if (!argMap.contains("saltedpassword")) {
             throw new TerseFailure(s"You must supply one of 'password' or 'saltedpassword' to add-scram")

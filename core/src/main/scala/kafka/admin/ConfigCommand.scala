@@ -193,7 +193,7 @@ object ConfigCommand extends Logging {
     def scramCredential(mechanism: ScramMechanism, credentialStr: String): String = {
       val pattern = "(?:iterations=([0-9]*),)?password=(.*)".r
       val (iterations, password) = credentialStr match {
-          case pattern(iterations, password) => (if (iterations != null) iterations.toInt else DefaultScramIterations, password)
+          case pattern(iterations, password) => (if (iterations != null) iterations.toInt else DefaultScramIterations, password.toCharArray)
           case _ => throw new IllegalArgumentException(s"Invalid credential property $mechanism=$credentialStr")
         }
       if (iterations < mechanism.minIterations())

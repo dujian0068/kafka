@@ -64,7 +64,7 @@ class DelegationTokenEndToEndAuthorizationTest extends EndToEndAuthorizationTest
     if (!TestInfoUtils.isKRaft(testInfo)) {
       zkClient.makeSurePersistentPathExists(ConfigEntityChangeNotificationZNode.path)
       // Create broker admin credentials before starting brokers
-      createScramCredentials(zkConnect, kafkaPrincipal.getName, kafkaPassword)
+      createScramCredentials(zkConnect, kafkaPrincipal.getName, kafkaPassword.toCharArray)
     }
   }
 
