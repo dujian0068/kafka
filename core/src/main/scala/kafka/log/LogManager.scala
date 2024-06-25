@@ -62,12 +62,12 @@ import scala.annotation.nowarn
  * A background thread handles log retention by periodically truncating excess log segments.
  */
 @threadsafe
-class LogManager(logDirs: Seq[File],
+class LogManager(logDirs: Seq[File], // a folder of store log segment location
                  initialOfflineDirs: Seq[File],
                  configRepository: ConfigRepository,
-                 val initialDefaultConfig: LogConfig,
-                 val cleanerConfig: CleanerConfig,
-                 recoveryThreadsPerDataDir: Int,
+                 val initialDefaultConfig: LogConfig,  // log manager and log segment config
+                 val cleanerConfig: CleanerConfig, // cleaner thread config
+                 recoveryThreadsPerDataDir: Int,  // recovery thread for ever data dir
                  val flushCheckMs: Long,
                  val flushRecoveryOffsetCheckpointMs: Long,
                  val flushStartOffsetCheckpointMs: Long,
