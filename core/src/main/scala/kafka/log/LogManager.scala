@@ -68,20 +68,20 @@ class LogManager(logDirs: Seq[File],
                  val initialDefaultConfig: LogConfig,
                  val cleanerConfig: CleanerConfig,
                  recoveryThreadsPerDataDir: Int,
-                 val flushCheckMs: Long,
-                 val flushRecoveryOffsetCheckpointMs: Long,
-                 val flushStartOffsetCheckpointMs: Long,
-                 val retentionCheckMs: Long,
-                 val maxTransactionTimeoutMs: Int,
+                 val flushCheckMs: Long,   // the interval of check if any data need flush to disk , default Long.MAX_VALUE
+                 val flushRecoveryOffsetCheckpointMs: Long, // default 60 * 1000
+                 val flushStartOffsetCheckpointMs: Long, // default 60 * 1000
+                 val retentionCheckMs: Long,  // the interval of log cleaner check, default 5 * 60 * 1000
+                 val maxTransactionTimeoutMs: Int,   // default 15 * 60 * 1000
                  val producerStateManagerConfig: ProducerStateManagerConfig,
-                 val producerIdExpirationCheckIntervalMs: Int,
+                 val producerIdExpirationCheckIntervalMs: Int,  // delete produceId time interval
                  interBrokerProtocolVersion: MetadataVersion,
                  scheduler: Scheduler,
                  brokerTopicStats: BrokerTopicStats,
                  logDirFailureChannel: LogDirFailureChannel,
                  time: Time,
                  val keepPartitionMetadataFile: Boolean,
-                 remoteStorageSystemEnable: Boolean) extends Logging {
+                 remoteStorageSystemEnable: Boolean) extends Logging {  // tiered storages witch
 
   import LogManager._
 
@@ -466,6 +466,7 @@ class LogManager(logDirs: Seq[File],
             // Ignore remote-log-index-cache directory as that is index cache maintained by tiered storage subsystem
             // but not any topic-partition dir.
             !logDir.getName.equals(RemoteIndexCache.DIR_NAME) &&
+            // only build topic partition
             UnifiedLog.parseTopicPartitionName(logDir).topic != KafkaRaftServer.MetadataTopic)
         numTotalLogs += logsToLoad.length
         numRemainingLogs.put(logDirAbsolutePath, logsToLoad.length)
