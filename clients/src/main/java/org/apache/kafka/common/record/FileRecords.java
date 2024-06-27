@@ -40,15 +40,15 @@ import java.util.concurrent.atomic.AtomicInteger;
  * instance to enable slicing a range of the log records.
  */
 public class FileRecords extends AbstractRecords implements Closeable {
-    private final boolean isSlice;
-    private final int start;
-    private final int end;
+    private final boolean isSlice;  //  A flag to indicate whether it is a fragment
+    private final int start; // the file start position
+    private final int end; // the file end position
 
     private final Iterable<FileLogInputStream.FileChannelRecordBatch> batches;
 
     // mutable state
-    private final AtomicInteger size;
-    private final FileChannel channel;
+    private final AtomicInteger size;  // the file size
+    private final FileChannel channel; // used read and write file
     private volatile File file;
 
     /**

@@ -76,13 +76,13 @@ public class LogSegment implements Closeable {
         LOG_FLUSH_TIMER = logFlushStatsMetricsGroup.newTimer("LogFlushRateAndTimeMs", TimeUnit.MILLISECONDS, TimeUnit.SECONDS);
     }
 
-    private final FileRecords log;
-    private final LazyIndex<OffsetIndex> lazyOffsetIndex;
-    private final LazyIndex<TimeIndex> lazyTimeIndex;
+    private final FileRecords log;  // this log segment represent log file
+    private final LazyIndex<OffsetIndex> lazyOffsetIndex; // offset index
+    private final LazyIndex<TimeIndex> lazyTimeIndex;   // time index
     private final TransactionIndex txnIndex;
-    private final long baseOffset;
-    private final int indexIntervalBytes;
-    private final long rollJitterMs;
+    private final long baseOffset;  // the log file start  offset index
+    private final int indexIntervalBytes; // two index interval bytes , default 4K(4096Bytes)
+    private final long rollJitterMs; //The maximum random jitter subtracted from the scheduled segment roll time
     private final Time time;
 
     // The timestamp we used for time based log rolling and for ensuring max compaction delay
