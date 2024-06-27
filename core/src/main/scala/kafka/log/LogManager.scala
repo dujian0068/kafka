@@ -68,20 +68,20 @@ class LogManager(logDirs: Seq[File], // a folder of store log segment location
                  val initialDefaultConfig: LogConfig,  // log manager and log segment config
                  val cleanerConfig: CleanerConfig, // cleaner thread config
                  recoveryThreadsPerDataDir: Int,  // recovery thread for ever data dir
-                 val flushCheckMs: Long,
-                 val flushRecoveryOffsetCheckpointMs: Long,
-                 val flushStartOffsetCheckpointMs: Long,
-                 val retentionCheckMs: Long,
-                 val maxTransactionTimeoutMs: Int,
+                 val flushCheckMs: Long,   // the interval of check if any data need flush to disk , default Long.MAX_VALUE
+                 val flushRecoveryOffsetCheckpointMs: Long, // default 60 * 1000
+                 val flushStartOffsetCheckpointMs: Long, // default 60 * 1000
+                 val retentionCheckMs: Long,  // the interval of log cleaner check, default 5 * 60 * 1000
+                 val maxTransactionTimeoutMs: Int,   // default 15 * 60 * 1000
                  val producerStateManagerConfig: ProducerStateManagerConfig,
-                 val producerIdExpirationCheckIntervalMs: Int,
+                 val producerIdExpirationCheckIntervalMs: Int,  // delete produceId time interval
                  interBrokerProtocolVersion: MetadataVersion,
                  scheduler: Scheduler,
                  brokerTopicStats: BrokerTopicStats,
                  logDirFailureChannel: LogDirFailureChannel,
                  time: Time,
                  val keepPartitionMetadataFile: Boolean,
-                 remoteStorageSystemEnable: Boolean) extends Logging {
+                 remoteStorageSystemEnable: Boolean) extends Logging {  // tiered storages witch
 
   import LogManager._
 
