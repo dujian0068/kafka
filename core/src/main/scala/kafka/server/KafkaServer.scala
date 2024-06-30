@@ -47,6 +47,7 @@ import org.apache.kafka.common.utils.{AppInfoParser, LogContext, Time, Utils}
 import org.apache.kafka.common.{Endpoint, Node, TopicPartition}
 import org.apache.kafka.coordinator.group.GroupCoordinator
 import org.apache.kafka.image.loader.metrics.MetadataLoaderMetrics
+import org.apache.kafka.listener.{KafkaEventPublisherListener, KafkaRunningEventPublisherListener}
 import org.apache.kafka.metadata.properties.MetaPropertiesEnsemble.VerificationFlag
 import org.apache.kafka.metadata.properties.MetaPropertiesEnsemble.VerificationFlag.REQUIRE_V0
 import org.apache.kafka.metadata.properties.{MetaProperties, MetaPropertiesEnsemble}
@@ -207,6 +208,9 @@ class KafkaServer(
   @volatile var brokerEpochManager: ZkBrokerEpochManager = _
 
   def brokerEpochSupplier(): Long = Option(brokerEpochManager).map(_.get()).getOrElse(-1)
+
+  val publishListener: KafkaEventPublisherListener = KafkaRunningEventPublisherListener.getInstance("config")
+
 
   /**
    * Start up API for bringing up a single instance of the Kafka server.
