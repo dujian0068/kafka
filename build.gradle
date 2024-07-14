@@ -960,6 +960,8 @@ project(':core') {
     }
     // ZooKeeperMain depends on commons-cli but declares the dependency as `provided`
     implementation libs.commonsCli
+    implementation group: 'org.slf4j', name: "slf4j-api", version: "1.7.36"
+    implementation group: 'org.slf4j', name: "slf4j-log4j12", version: "1.7.36"
 
     compileOnly libs.reload4j
 
@@ -1533,6 +1535,9 @@ project(':clients') {
     testImplementation libs.reload4j
     testImplementation libs.mockitoCore
     testImplementation libs.mockitoJunitJupiter // supports MockitoExtension
+    testImplementation group: 'org.openjdk.jmh', name: 'jmh-core', version: '1.37'
+    testImplementation group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: '1.37'
+
 
     testRuntimeOnly libs.slf4jReload4j
     testRuntimeOnly libs.jacksonDatabind
@@ -2984,6 +2989,8 @@ project(':log4j-appender') {
   dependencies {
     implementation project(':clients')
     implementation libs.slf4jReload4j
+    implementation group: 'org.slf4j', name: "slf4j-api", version: "1.7.36"
+    implementation group: 'org.slf4j', name: "slf4j-log4j12", version: "1.7.36"
 
     testImplementation project(':clients').sourceSets.test.output
     testImplementation libs.junitJupiter
@@ -3491,4 +3498,24 @@ task aggregatedJavadoc(type: Javadoc, dependsOn: compileJava) {
   classpath = files(projectsWithJavadoc.collect { it.sourceSets.main.compileClasspath })
   includes = projectsWithJavadoc.collectMany { it.javadoc.getIncludes() }
   excludes = projectsWithJavadoc.collectMany { it.javadoc.getExcludes() }
+}
+
+allprojects {
+  repositories {
+    // 本地仓库，地址是maven本地仓库地址
+    maven {url "file:/E:/repository"}
+    // 阿里云仓库
+    maven { url 'https://maven.aliyun.com/repository/central' }
+    maven { url 'https://maven.aliyun.com/repository/google' }
+    maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+    maven { url 'https://maven.aliyun.com/repository/jcenter' }
+    maven { url 'https://maven.aliyun.com/repository/spring' }
+    maven { url 'https://maven.aliyun.com/repository/spring-plugin' }
+    maven { url 'https://maven.aliyun.com/repository/releases' }
+    maven { url 'https://maven.aliyun.com/repository/spring-plugin' }
+    maven { url 'https://maven.aliyun.com/repository/public' }
+    maven { url 'https://maven.aliyun.com/repository/releases' }
+    maven { url 'https://maven.aliyun.com/repository/grails-core' }
+    maven { url 'https://maven.aliyun.com/repository/mapr-public' }
+  }
 }
