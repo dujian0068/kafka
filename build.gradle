@@ -49,6 +49,8 @@ plugins {
   //  We are going to drop JDK8 support. Hence, the spotless is upgrade to newest version and be applied only if the build env is compatible with JDK 11.
   //  spotless 6.15.0+ has issue in runtime with JDK8 even through we define it with `apply:false`. see https://github.com/diffplug/spotless/issues/2156 for more details
   id 'com.diffplug.spotless' version "6.14.0" apply false
+  id 'java'
+  id 'me.champeau.jmh' version '0.6.6'
 }
 
 ext {
@@ -1517,6 +1519,8 @@ project(':clients') {
     implementation libs.snappy
     implementation libs.slf4jApi
     implementation libs.opentelemetryProto
+    implementation group: 'org.openjdk.jmh', name: 'jmh-core', version: '1.37'
+    implementation group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: '1.37'
 
     // libraries which should be added as runtime dependencies in generated pom.xml should be defined here:
     shadowed libs.zstd
@@ -1535,8 +1539,7 @@ project(':clients') {
     testImplementation libs.reload4j
     testImplementation libs.mockitoCore
     testImplementation libs.mockitoJunitJupiter // supports MockitoExtension
-    testImplementation group: 'org.openjdk.jmh', name: 'jmh-core', version: '1.37'
-    testImplementation group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: '1.37'
+
 
 
     testRuntimeOnly libs.slf4jReload4j
@@ -1679,6 +1682,7 @@ project(':clients') {
     include "**/org/apache/kafka/server/quota/*"
     include "**/org/apache/kafka/server/telemetry/*"
   }
+
 }
 
 project(':raft') {
