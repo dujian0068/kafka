@@ -14,8 +14,8 @@ import java.util.concurrent.TimeUnit;
 @State(Scope.Thread)
 @Fork(1)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
-@Warmup(iterations = 3)
-@Measurement(iterations = 5)
+@Warmup(iterations = 1)
+@Measurement(iterations = 10)
 public class MyProducerTest {
 
     public static void main(String[] args) throws RunnerException {
@@ -30,18 +30,21 @@ public class MyProducerTest {
 
     // Kafka Producer配置
     static Properties properties = new Properties();
+    static  KafkaProducer<String, String> producer = null;
+    static ProducerRecord<String, String> record = null;
     static {
         properties.put("bootstrap.servers", bootstrapServers);
         properties.put("key.serializer", org.apache.kafka.common.serialization.StringSerializer.class);
         properties.put("value.serializer", org.apache.kafka.common.serialization.StringSerializer.class);
+        producer = new KafkaProducer<>(properties);
+        String key = UUID.randomUUID().toString();
+        record = new ProducerRecord<>(topic, key, key);
     }
 
     @Benchmark
     public void send(){
-        KafkaProducer<String, String> producer = new KafkaProducer<>(properties);
+
         for (int i = 0; i< 1000000; i++){
-            String key = UUID.randomUUID().toString();
-            ProducerRecord<String, String> record = new ProducerRecord<>(topic, key, key);
             producer.send(record);
         }
     }
