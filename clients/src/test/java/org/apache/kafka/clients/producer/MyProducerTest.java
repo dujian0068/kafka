@@ -14,8 +14,8 @@ import java.util.concurrent.TimeUnit;
 @State(Scope.Thread)
 @Fork(1)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
-@Warmup(iterations = 1)
-@Measurement(iterations = 10)
+@Warmup(iterations = 3)
+@Measurement(iterations = 5)
 public class MyProducerTest {
 
     public static void main(String[] args) throws RunnerException {
@@ -44,7 +44,7 @@ public class MyProducerTest {
     @Benchmark
     public void send(){
 
-        for (int i = 0; i< 1000000; i++){
+        for (int i = 0; i< 10000000; i++){
             producer.send(record);
         }
     }
