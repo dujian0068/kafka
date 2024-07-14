@@ -1552,6 +1552,9 @@ project(':clients') {
     testImplementation libs.reload4j
     testImplementation libs.mockitoCore
     testImplementation libs.mockitoJunitJupiter // supports MockitoExtension
+    testImplementation group: 'org.openjdk.jmh', name: 'jmh-core', version: '1.37'
+    testImplementation group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: '1.37'
+
 
 
 
