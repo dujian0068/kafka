@@ -37,8 +37,18 @@ public class MyProducerTest {
         properties.put("key.serializer", org.apache.kafka.common.serialization.StringSerializer.class);
         properties.put("value.serializer", org.apache.kafka.common.serialization.StringSerializer.class);
         producer = new KafkaProducer<>(properties);
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
         String key = UUID.randomUUID().toString();
-        record = new ProducerRecord<>(topic, key, key);
+        record = new ProducerRecord<>(topic, key, UUID.randomUUID().toString()+
+                UUID.randomUUID().toString()+
+                UUID.randomUUID().toString()+
+                UUID.randomUUID().toString()+
+                UUID.randomUUID().toString()+
+                UUID.randomUUID().toString());
     }
 
     @Benchmark
