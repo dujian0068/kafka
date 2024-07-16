@@ -89,47 +89,37 @@ public class ByteBufferOutputStream extends OutputStream implements DataOutput {
     @Override
     public void writeShort(int v) throws IOException {
         ensureRemaining(2);
-        writeByte((v >>> 8) & 0xFF);
-        writeByte((v >>> 0) & 0xFF);
+        buffer.putShort((short) v);
     }
 
     @Override
     public void writeChar(int v) throws IOException {
         ensureRemaining(2);
-        writeByte((v >>> 8) & 0xFF);
-        writeByte((v >>> 0) & 0xFF);
+        buffer.putChar((char) v);
     }
 
     @Override
     public void writeInt(int v) throws IOException {
         ensureRemaining(4);
-        buffer.put((byte)((v >>> 24) & 0xFF));
-        buffer.put((byte)((v >>> 16) & 0xFF));
-        buffer.put((byte)((v >>>  8) & 0xFF));
-        buffer.put((byte)((v >>>  0) & 0xFF));    }
+        buffer.putLong(v);
+    }
 
     @Override
     public void writeLong(long v) throws IOException {
         ensureRemaining(8);
-        buffer.put((byte)(v >>> 56));
-        buffer.put((byte)(v >>> 48));
-        buffer.put((byte)(v >>> 40));
-        buffer.put((byte)(v >>> 32));
-        buffer.put((byte)(v >>> 24));
-        buffer.put((byte)(v >>> 16));
-        buffer.put((byte)(v >>>  8));
-        buffer.put((byte)(v >>>  0));
-
+        buffer.putLong(v);
     }
 
     @Override
     public void writeFloat(float v) throws IOException {
-        writeInt(Float.floatToIntBits(v));
+        ensureRemaining(4);
+        buffer.putFloat(v);
     }
 
     @Override
     public void writeDouble(double v) throws IOException {
-        writeLong(Double.doubleToLongBits(v));
+        ensureRemaining(8);
+        buffer.putDouble(v);
     }
 
     @Override
@@ -146,9 +136,7 @@ public class ByteBufferOutputStream extends OutputStream implements DataOutput {
         int len = s.length();
         ensureRemaining(len*2);
         for (int i = 0 ; i < len ; i++) {
-            int v = s.charAt(i);
-            buffer.put((byte) ((v >>> 8) & 0xFF));
-            buffer.put((byte)((v >>> 0) & 0xFF));
+            buffer.putChar(s.charAt(i));
         }
     }
 
@@ -175,7 +163,7 @@ public class ByteBufferOutputStream extends OutputStream implements DataOutput {
                     "encoded string too long: " + utflen + " bytes");
         ensureRemaining(utflen + 2);
         buffer.put((byte) ((utflen >>> 8) & 0xFF));
-        buffer.put((byte) ((utflen >>> 0) & 0xFF));
+        buffer.put((byte) ((utflen) & 0xFF));
 
         int i=0;
         for (i=0; i<strlen; i++) {
@@ -192,10 +180,10 @@ public class ByteBufferOutputStream extends OutputStream implements DataOutput {
             } else if (c > 0x07FF) {
                 buffer.put((byte) (0xE0 | ((c >> 12) & 0x0F)));
                 buffer.put((byte) (0x80 | ((c >>  6) & 0x3F)));
-                buffer.put((byte) (0x80 | ((c >>  0) & 0x3F)));
+                buffer.put((byte) (0x80 | ((c) & 0x3F)));
             } else {
                 buffer.put((byte) (0xC0 | ((c >>  6) & 0x1F)));
-                buffer.put((byte) (0x80 | ((c >>  0) & 0x3F)));
+                buffer.put((byte) (0x80 | ((c) & 0x3F)));
             }
         }
     }
