@@ -241,7 +241,7 @@ public class BufferPool {
 
     // Protected for testing.
     protected ByteBuffer allocateByteBuffer(int size) {
-        return ByteBuffer.allocate(size);
+        return ByteBuffer.allocateDirect(size);
     }
 
     /**

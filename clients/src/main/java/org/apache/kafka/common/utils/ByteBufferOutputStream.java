@@ -89,15 +89,15 @@ public class ByteBufferOutputStream extends OutputStream implements DataOutput {
     @Override
     public void writeShort(int v) throws IOException {
         ensureRemaining(2);
-        writeByte((v >>> 8) & 0xFF);
-        writeByte((v >>> 0) & 0xFF);
+        buffer.put((byte)((v >>> 8) & 0xFF));
+        buffer.put((byte) ((v) & 0xFF));
     }
 
     @Override
     public void writeChar(int v) throws IOException {
         ensureRemaining(2);
-        writeByte((v >>> 8) & 0xFF);
-        writeByte((v >>> 0) & 0xFF);
+        buffer.put((byte)((v >>> 8) & 0xFF));
+        buffer.put((byte)((v >>> 0) & 0xFF));
     }
 
     @Override
@@ -249,11 +249,9 @@ public class ByteBufferOutputStream extends OutputStream implements DataOutput {
 
     private void expandBuffer(int remainingRequired) {
         int expandSize = Math.max((int) (buffer.limit() * REALLOCATION_FACTOR), buffer.position() + remainingRequired);
-        ByteBuffer temp = ByteBuffer.allocate(expandSize);
-        int limit = limit();
-        buffer.flip();
-        temp.put(buffer);
-        buffer.limit(limit);
+        byte[] byteArr = new byte[expandSize];
+        System.arraycopy(buffer.array(), buffer.arrayOffset(), byteArr, 0, buffer.arrayOffset() + buffer.position());
+        ByteBuffer temp = ByteBuffer.wrap(byteArr);
         // reset the old buffer's position so that the partial data in the new buffer cannot be mistakenly consumed
         // we should ideally only do this for the original buffer, but the additional complexity doesn't seem worth it
         buffer.position(initialPosition);
