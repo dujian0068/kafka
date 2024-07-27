@@ -1,5 +1,6 @@
 package org.apache.kafka.clients.producer;
 
+import org.apache.kafka.common.protocol.types.Field;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -35,6 +36,7 @@ public class MyProducerTest {
         properties.put("bootstrap.servers", bootstrapServers);
         properties.put("key.serializer", org.apache.kafka.common.serialization.StringSerializer.class);
         properties.put("value.serializer", org.apache.kafka.common.serialization.StringSerializer.class);
+        properties.put(ProducerConfig.BATCH_SIZE_CONFIG, 1024 * 1024);
         producer = new KafkaProducer<>(properties);
         try {
             Thread.sleep(1000);
@@ -42,18 +44,18 @@ public class MyProducerTest {
             throw new RuntimeException(e);
         }
         String key = UUID.randomUUID().toString();
-        record = new ProducerRecord<>(topic, key, UUID.randomUUID().toString()+
-                UUID.randomUUID().toString()+
-                UUID.randomUUID().toString()+
-                UUID.randomUUID().toString()+
-                UUID.randomUUID().toString()+
-                UUID.randomUUID().toString());
+        StringBuilder sb = new StringBuilder();
+        for (int i =  0; i< 100; i++){
+            sb.append(key);
+        }
+
+        record = new ProducerRecord<>(topic, key, sb.toString());
     }
 
     //@Benchmark
     public void send(){
-        long[] time = new long[50];
-        for (int j = 0;j<50; j++){
+        long[] time = new long[20];
+        for (int j = 0;j<20; j++){
             long start = System.currentTimeMillis();
             for (int i = 0; i< 1000000; i++){
                 producer.send(record);
