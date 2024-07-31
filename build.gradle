@@ -14,12 +14,17 @@
 // limitations under the License.
 
 import org.ajoberstar.grgit.Grgit
-import org.gradle.api.JavaVersion
 
 import java.nio.charset.StandardCharsets
 
 buildscript {
   repositories {
+    maven {
+      url 'https://maven.aliyun.com/repository/public/'
+    }
+    maven {
+      url 'https://maven.aliyun.com/repository/central'
+    }
     mavenCentral()
   }
   apply from: "$rootDir/gradle/dependencies.gradle"
