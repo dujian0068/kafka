@@ -443,6 +443,7 @@ public class KafkaProducer<K, V> implements Producer<K, V> {
             // As per Kafka producer configuration documentation batch.size may be set to 0 to explicitly disable
             // batching which in practice actually means using a batch size of 1.
             int batchSize = Math.max(1, config.getInt(ProducerConfig.BATCH_SIZE_CONFIG));
+            // 消息记录器
             this.accumulator = new RecordAccumulator(logContext,
                     batchSize,
                     this.compressionType,
